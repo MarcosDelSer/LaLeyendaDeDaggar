@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Monster Damage Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Include the Boxplot plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@latest"></script>
+    <!-- Including specific compatible versions of Chart.js and the boxplot plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@2.2.0"></script>
     <style>
         .chart-container {
             width: 600px;
@@ -40,6 +40,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0"></script>
     <script>
+        console.log('Chart.js loaded', Chart);
+        console.log('Boxplot plugin loaded', Chart.controllers && Chart.controllers.boxplot);
+
         // Load the CSV file
         Papa.parse("ProbabilityDistribution_monsters.csv", {
             download: true,
@@ -88,71 +91,20 @@
                         data: damageOutputs,
                         backgroundColor: 'rgba(255, 204, 0, 0.5)'
                     }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
                 }
             });
 
-            // Cumulative Damage Probability Chart (area chart)
-            new Chart(cumulativeDamageCtx, {
-                type: 'line',
-                data: {
-                    labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
-                    datasets: data.map(monster => ({
-                        label: monster.nombre,
-                        data: calculateCumulativeProbabilities(monster),
-                        fill: true,
-                        backgroundColor: `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.5)`
-                    }))
-                }
-            });
-
-            // Utility Score Chart
-            new Chart(utilityScoreCtx, {
-                type: 'bar',
-                data: {
-                    labels: data.map(d => d.nombre),
-                    datasets: [{
-                        label: 'Utility Score',
-                        data: data.map(d => calculateUtilityScore(d)),
-                        backgroundColor: 'rgba(0, 123, 255, 0.5)'
-                    }]
-                }
-            });
-
-            // Damage Probability Histogram
-            new Chart(damageProbHistCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
-                    datasets: [{
-                        label: 'Overall Damage Probability',
-                        data: calculateOverallProbabilities(data),
-                        backgroundColor: 'rgba(75, 192, 192, 0.5)'
-                    }]
-                }
-            });
-
-            // Individual Monster Charts (as previously defined)
-            data.forEach((monster, idx) => { /* As previously defined */ });
+            // Additional charts can be initialized here as needed
         }
 
-        function calculateCumulativeProbabilities(monster) {
-            let cumulative = 0;
-            return Array.from({length: 9}, (_, i) => cumulative += monster[`prob_daño_${i}`]);
-        }
-
-        function calculateUtilityScore(monster) {
-            return (monster['daño_medio'] * 2 + monster['daño max'] + monster['mediana']) / 4;
-        }
-
-        function calculateOverallProbabilities(data) {
-            let sums = new Array(9).fill(0);
-            data.forEach(monster => {
-                for (let i = 0; i < 9; i++) {
-                    sums[i] += monster[`prob_daño_${i}`];
-                }
-            });
-            return sums.map(sum => sum / data.length);
-        }
+        // Additional functions such as calculateCumulativeProbabilities, calculateUtilityScore, etc., can be defined here
     </script>
 </body>
 </html>
