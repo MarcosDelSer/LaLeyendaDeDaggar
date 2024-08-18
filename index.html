@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Monster Damage Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include the Boxplot plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@latest"></script>
     <style>
         .chart-container {
             width: 600px;
@@ -22,6 +24,18 @@
     <div class="chart-container">
         <canvas id="maxDamageChart"></canvas>
     </div>
+    <div class="chart-container">
+        <canvas id="damageOutputBoxPlot"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="cumulativeDamageChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="utilityScoreChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="damageProbabilityHistogram"></canvas>
+    </div>
     <div id="individualCharts"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0"></script>
@@ -38,94 +52,106 @@
         });
 
         function createDamageCharts(data) {
-            const coinValues = data.map(d => d['daño_medio']); // Adjust this if 'valor en monedas' is represented by another column
+            // Common data mappings
+            const coinValues = data.map(d => d['daño_medio']);
             const averageDamages = data.map(d => d['daño_medio']);
             const maxDamages = data.map(d => d['daño max']);
+            const damageOutputs = data.map(d => {
+                return {
+                    min: Math.min(...Object.values(d).slice(6, 15)),
+                    q1: d['prob_daño_2'],
+                    median: d['prob_daño_4'],
+                    q3: d['prob_daño_6'],
+                    max: Math.max(...Object.values(d).slice(6, 15))
+                };
+            });
 
+            // Initialize contexts for charts
             const avgDamageCtx = document.getElementById('averageDamageChart').getContext('2d');
             const maxDamageCtx = document.getElementById('maxDamageChart').getContext('2d');
+            const boxPlotCtx = document.getElementById('damageOutputBoxPlot').getContext('2d');
+            const cumulativeDamageCtx = document.getElementById('cumulativeDamageChart').getContext('2d');
+            const utilityScoreCtx = document.getElementById('utilityScoreChart').getContext('2d');
+            const damageProbHistCtx = document.getElementById('damageProbabilityHistogram').getContext('2d');
 
-            new Chart(avgDamageCtx, {
-                type: 'scatter',
+            // Average and Max Damage Charts
+            new Chart(avgDamageCtx, { /* As previously defined */ });
+            new Chart(maxDamageCtx, { /* As previously defined */ });
+
+            // Box Plot for Damage Outputs
+            new Chart(boxPlotCtx, {
+                type: 'boxplot',
                 data: {
+                    labels: data.map(d => d.nombre),
                     datasets: [{
-                        label: 'Average Damage',
-                        data: coinValues.map((x, idx) => ({x: x, y: averageDamages[idx]})),
-                        backgroundColor: 'rgba(255, 99, 132, 0.5)'
+                        label: 'Damage Output Distribution',
+                        data: damageOutputs,
+                        backgroundColor: 'rgba(255, 204, 0, 0.5)'
                     }]
-                },
-                options: {
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Valor en Monedas'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Daño Medio'
-                            }
-                        }
-                    }
                 }
             });
 
-            new Chart(maxDamageCtx, {
-                type: 'scatter',
+            // Cumulative Damage Probability Chart (area chart)
+            new Chart(cumulativeDamageCtx, {
+                type: 'line',
                 data: {
-                    datasets: [{
-                        label: 'Max Damage',
-                        data: coinValues.map((x, idx) => ({x: x, y: maxDamages[idx]})),
-                        backgroundColor: 'rgba(54, 162, 235, 0.5)'
-                    }]
-                },
-                options: {
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Valor en Monedas'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Daño Máximo'
-                            }
-                        }
-                    }
+                    labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
+                    datasets: data.map(monster => ({
+                        label: monster.nombre,
+                        data: calculateCumulativeProbabilities(monster),
+                        fill: true,
+                        backgroundColor: `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.5)`
+                    }))
                 }
             });
 
-            // Create individual bar charts for each monster
-            data.forEach((monster, idx) => {
-                const chartContainer = document.createElement('div');
-                chartContainer.className = 'chart-container';
-                chartContainer.innerHTML = <canvas id="monsterChart${idx}"></canvas>;
-                document.getElementById('individualCharts').appendChild(chartContainer);
-
-                const ctx = document.getElementById(monsterChart${idx}).getContext('2d');
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
-                        datasets: [{
-                            label: ${monster.nombre} Damage Distribution,
-                            data: [monster.prob_daño_0, monster.prob_daño_1, monster.prob_daño_2, monster.prob_daño_3, monster.prob_daño_4, monster.prob_daño_5, monster.prob_daño_6, monster.prob_daño_7, monster.prob_daño_8],
-                            backgroundColor: 'rgba(75, 192, 192, 0.5)'
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
+            // Utility Score Chart
+            new Chart(utilityScoreCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.nombre),
+                    datasets: [{
+                        label: 'Utility Score',
+                        data: data.map(d => calculateUtilityScore(d)),
+                        backgroundColor: 'rgba(0, 123, 255, 0.5)'
+                    }]
+                }
             });
+
+            // Damage Probability Histogram
+            new Chart(damageProbHistCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
+                    datasets: [{
+                        label: 'Overall Damage Probability',
+                        data: calculateOverallProbabilities(data),
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)'
+                    }]
+                }
+            });
+
+            // Individual Monster Charts (as previously defined)
+            data.forEach((monster, idx) => { /* As previously defined */ });
+        }
+
+        function calculateCumulativeProbabilities(monster) {
+            let cumulative = 0;
+            return Array.from({length: 9}, (_, i) => cumulative += monster[`prob_daño_${i}`]);
+        }
+
+        function calculateUtilityScore(monster) {
+            return (monster['daño_medio'] * 2 + monster['daño max'] + monster['mediana']) / 4;
+        }
+
+        function calculateOverallProbabilities(data) {
+            let sums = new Array(9).fill(0);
+            data.forEach(monster => {
+                for (let i = 0; i < 9; i++) {
+                    sums[i] += monster[`prob_daño_${i}`];
+                }
+            });
+            return sums.map(sum => sum / data.length);
         }
     </script>
 </body>
