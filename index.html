@@ -7,15 +7,40 @@
     <style>
         .chart-container {
             width: 600px;
+            height: 400px;
             margin: 30px auto;
         }
         canvas {
             background-color: #fff;
             border: 1px solid #ddd;
         }
+        .filter-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
+    <h1>Monster Damage Dashboard</h1>
+    <div class="filter-container">
+        <select id="attackTypeFilter">
+            <option value="all">All Attack Types</option>
+            <option value="C/C">Close Combat (C/C)</option>
+            <option value="Rango">Ranged</option>
+            <option value="C/C y Rango">Both</option>
+        </select>
+        <select id="monsterTypeFilter">
+            <option value="all">All Monster Types</option>
+            <option value="SÍ">Boss</option>
+            <option value="NO">Not Boss</option>
+        </select>
+        <select id="numberOfDicesFilter">
+            <option value="all">All Dice Numbers</option>
+            <option value="1">1 Dice</option>
+            <option value="2">2 Dices</option>
+            <option value="3">3 Dices</option>
+        </select>
+    </div>
     <div class="chart-container">
         <canvas id="averageDamageChart"></canvas>
     </div>
@@ -31,117 +56,129 @@
     <div class="chart-container">
         <canvas id="damageProbabilityHistogram"></canvas>
     </div>
-    <div id="individualCharts"></div>
+    <div class="chart-container">
+        <canvas id="averageDamageVsValueChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="maxDamageVsValueChart"></canvas>
+    </div>
+    <div id="individualDamageProbCharts"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0"></script>
     <script>
+        let allData = [];
+        let filteredData = [];
+        let charts = [];
+
         // Load the CSV file
-        Papa.parse("ProbabilityDistribution_monsters.csv", {
+        Papa.parse("All cards ESP bestiario.csv", {
             download: true,
             header: true,
             dynamicTyping: true,
             complete: function(results) {
-                const data = results.data;
-                createDamageCharts(data);
+                allData = results.data;
+                filteredData = allData; // Initialize with all data
+                createDamageCharts(filteredData);
+                initializeFilters();
             }
         });
 
+        function initializeFilters() {
+            document.getElementById('attackTypeFilter').addEventListener('change', () => filterDataAndUpdateCharts());
+            document.getElementById('monsterTypeFilter').addEventListener('change', () => filterDataAndUpdateCharts());
+            document.getElementById('numberOfDicesFilter').addEventListener('change', () => filterDataAndUpdateCharts());
+        }
+
+        function filterDataAndUpdateCharts() {
+            const attackType = document.getElementById('attackTypeFilter').value;
+            const monsterType = document.getElementById('monsterTypeFilter').value;
+            const numberOfDices = document.getElementById('numberOfDicesFilter').value;
+
+            filteredData = allData.filter(d => 
+                (attackType === 'all' || d.Tipo === attackType) &&
+                (monsterType === 'all' || d.Jefe === monsterType) &&
+                (numberOfDices === 'all' || d.DA === parseInt(numberOfDices, 10))
+            );
+
+            createDamageCharts(filteredData);
+        }
+
         function createDamageCharts(data) {
-            // Common data mappings
-            const averageDamages = data.map(d => d['daño_medio']);
-            const maxDamages = data.map(d => d['daño max']);
+            // Clear existing charts if any
+            charts.forEach(chart => chart.destroy());
+            charts = [];
 
-            // Initialize contexts for charts
-            const avgDamageCtx = document.getElementById('averageDamageChart').getContext('2d');
-            const maxDamageCtx = document.getElementById('maxDamageChart').getContext('2d');
-            const cumulativeDamageCtx = document.getElementById('cumulativeDamageChart').getContext('2d');
-            const utilityScoreCtx = document.getElementById('utilityScoreChart').getContext('2d');
-            const damageProbHistCtx = document.getElementById('damageProbabilityHistogram').getContext('2d');
+            const ctxConfig = [
+                { id: 'averageDamageChart', type: 'line', label: 'Average Damage', key: 'daño_medio' },
+                { id: 'maxDamageChart', type: 'bar', label: 'Max Damage', key: 'daño max' },
+                { id: 'cumulativeDamageChart', type: 'line', label: 'Cumulative Damage', key: 'cumulative' },
+                { id: 'utilityScoreChart', type: 'bar', label: 'Utility Score', key: 'utility' },
+                { id: 'damageProbabilityHistogram', type: 'bar', label: 'Damage Probability', key: 'probability' },
+                { id: 'averageDamageVsValueChart', type: 'scatter', label: 'Average Damage vs Value', key: 'daño_medio', isValueChart: true },
+                { id: 'maxDamageVsValueChart', type: 'scatter', label: 'Max Damage vs Value', key: 'daño max', isValueChart: true }
+            ];
 
-            // Average Damage Chart
-            new Chart(avgDamageCtx, {
-                type: 'line',
-                data: {
-                    labels: data.map(d => d.nombre),
-                    datasets: [{
-                        label: 'Average Damage',
-                        data: averageDamages,
-                        backgroundColor: 'rgba(255, 99, 132, 0.5)'
-                    }]
-                }
+            ctxConfig.forEach(config => {
+                const ctx = document.getElementById(config.id).getContext('2d');
+                charts.push(new Chart(ctx, {
+                    type: config.type,
+                    data: {
+                        labels: config.isValueChart ? undefined : data.map(d => d.Nombre),
+                        datasets: [{
+                            label: config.label,
+                            data: config.isValueChart ? data.map(d => ({ x: d.VALOR, y: d[config.key] })) : data.map(d => d[config.key]),
+                            backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                type: config.isValueChart ? 'linear' : undefined,
+                                position: 'bottom',
+                                title: {
+                                    display: true,
+                                    text: config.isValueChart ? 'Valor en Monedas' : 'Monsters'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: config.label
+                                }
+                            }
+                        }
+                    }
+                }));
             });
 
-            // Max Damage Chart
-            new Chart(maxDamageCtx, {
-                type: 'bar',
-                data: {
-                    labels: data.map(d => d.nombre),
-                    datasets: [{
-                        label: 'Max Damage',
-                        data: maxDamages,
-                        backgroundColor: 'rgba(54, 162, 235, 0.5)'
-                    }]
-                }
-            });
-
-            // Cumulative Damage Probability Chart
-            new Chart(cumulativeDamageCtx, {
-                type: 'line',
-                data: {
-                    labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
-                    datasets: data.map(monster => ({
-                        label: monster.nombre,
-                        data: calculateCumulativeProbabilities(monster),
-                        fill: true,
-                        backgroundColor: `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.5)`
-                    }))
-                }
-            });
-
-            // Utility Score Chart
-            new Chart(utilityScoreCtx, {
-                type: 'bar',
-                data: {
-                    labels: data.map(d => d.nombre),
-                    datasets: [{
-                        label: 'Utility Score',
-                        data: data.map(d => calculateUtilityScore(d)),
-                        backgroundColor: 'rgba(0, 123, 255, 0.5)'
-                    }]
-                }
-            });
-
-            // Damage Probability Histogram
-            new Chart(damageProbHistCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
-                    datasets: [{
-                        label: 'Overall Damage Probability',
-                        data: calculateOverallProbabilities(data),
-                        backgroundColor: 'rgba(75, 192, 192, 0.5)'
-                    }]
-                }
-            });
-        }
-
-        function calculateCumulativeProbabilities(monster) {
-            let cumulative = 0;
-            return Array.from({length: 9}, (_, i) => cumulative += monster[`prob_daño_${i}`]);
-        }
-
-        function calculateUtilityScore(monster) {
-            return (monster['daño_medio'] * 2 + monster['daño max'] + monster['mediana']) / 4;
-        }
-
-        function calculateOverallProbabilities(data) {
-            let sums = new Array(9).fill(0);
+            // Individual damage probability charts
+            document.getElementById('individualDamageProbCharts').innerHTML = '';
             data.forEach(monster => {
-                for (let i = 0; i < 9; i++) {
-                    sums[i] += monster[`prob_daño_${i}`];
-                }
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'chart-container';
+                chartContainer.innerHTML = `<canvas id="damageProbChart${monster.id}"></canvas>`;
+                document.getElementById('individualDamageProbCharts').appendChild(chartContainer);
+
+                const ctx = document.getElementById(`damageProbChart${monster.id}`).getContext('2d');
+                charts.push(new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
+                        datasets: [{
+                            label: `${monster.Nombre} Damage Probability`,
+                            data: [monster.prob_daño_0, monster.prob_daño_1, monster.prob_daño_2, monster.prob_daño_3, monster.prob_daño_4, monster.prob_daño_5, monster.prob_daño_6, monster.prob_daño_7, monster.prob_daño_8],
+                            backgroundColor: 'rgba(75, 192, 192, 0.5)'
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                }));
             });
-            return sums.map(sum => sum / data.length);
         }
     </script>
 </body>
