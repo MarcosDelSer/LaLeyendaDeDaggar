@@ -70,18 +70,33 @@
         let filteredData = [];
         let charts = [];
 
-        // Load the CSV file
-        Papa.parse("monster_full_data_sheet.csv", {
-            download: true,
-            header: true,
-            dynamicTyping: true,
-            complete: function(results) {
-                allData = results.data;
-                filteredData = allData; // Initialize with all data
-                createDamageCharts(filteredData);
-                initializeFilters();
-            }
-        });
+        function loadData() {
+            Papa.parse("monsters_full_data_sheet.csv", {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                complete: function(bestiarioResults) {
+                    Papa.parse("ProbabilityDistribution_monsters.csv", {
+                        download: true,
+                        header: true,
+                        dynamicTyping: true,
+                        complete: function(damageResults) {
+                            allData = mergeData(bestiarioResults.data, damageResults.data);
+                            filteredData = allData;
+                            createDamageCharts(filteredData);
+                            initializeFilters();
+                        }
+                    });
+                }
+            });
+        }
+
+        function mergeData(bestiario, damageDistribution) {
+            return bestiario.map(item => {
+                let damageData = damageDistribution.find(d => d.id === item.id);
+                return {...item, ...damageData};
+            });
+        }
 
         function initializeFilters() {
             document.getElementById('attackTypeFilter').addEventListener('change', () => filterDataAndUpdateCharts());
@@ -97,47 +112,46 @@
             filteredData = allData.filter(d => 
                 (attackType === 'all' || d.Tipo === attackType) &&
                 (monsterType === 'all' || d.Jefe === monsterType) &&
-                (numberOfDices === 'all' || d.DA === parseInt(numberOfDices, 10))
+                (numberOfDices === 'all' || d.DA.toString() === numberOfDices)
             );
 
             createDamageCharts(filteredData);
         }
 
         function createDamageCharts(data) {
-            // Clear existing charts if any
             charts.forEach(chart => chart.destroy());
             charts = [];
 
-            const ctxConfig = [
-                { id: 'averageDamageChart', type: 'line', label: 'Average Damage', key: 'daño_medio' },
-                { id: 'maxDamageChart', type: 'bar', label: 'Max Damage', key: 'daño max' },
-                { id: 'cumulativeDamageChart', type: 'line', label: 'Cumulative Damage', key: 'cumulative' },
-                { id: 'utilityScoreChart', type: 'bar', label: 'Utility Score', key: 'utility' },
-                { id: 'damageProbabilityHistogram', type: 'bar', label: 'Damage Probability', key: 'probability' },
-                { id: 'averageDamageVsValueChart', type: 'scatter', label: 'Average Damage vs Value', key: 'daño_medio', isValueChart: true },
-                { id: 'maxDamageVsValueChart', type: 'scatter', label: 'Max Damage vs Value', key: 'daño max', isValueChart: true }
+            const chartConfigs = [
+                { id: 'averageDamageChart', type: 'bar', label: 'Average Damage', dataKey: 'daño_medio' },
+                { id: 'maxDamageChart', type: 'bar', label: 'Max Damage', dataKey: 'daño max' },
+                { id: 'cumulativeDamageChart', type: 'line', label: 'Cumulative Damage Probability', dataKey: 'cumulative' },
+                { id: 'utilityScoreChart', type: 'bar', label: 'Utility Score', dataKey: 'utility' },
+                { id: 'damageProbabilityHistogram', type: 'bar', label: 'Damage Probability Histogram', dataKey: 'probability' },
+                { id: 'averageDamageVsValueChart', type: 'scatter', label: 'Average Damage vs. Value', dataKey: 'daño_medio', valueKey: 'VALOR' },
+                { id: 'maxDamageVsValueChart', type: 'scatter', label: 'Max Damage vs. Value', dataKey: 'daño max', valueKey: 'VALOR' }
             ];
 
-            ctxConfig.forEach(config => {
+            chartConfigs.forEach(config => {
                 const ctx = document.getElementById(config.id).getContext('2d');
                 charts.push(new Chart(ctx, {
                     type: config.type,
                     data: {
-                        labels: config.isValueChart ? undefined : data.map(d => d.Nombre),
+                        labels: data.map(d => d.Nombre),
                         datasets: [{
                             label: config.label,
-                            data: config.isValueChart ? data.map(d => ({ x: d.VALOR, y: d[config.key] })) : data.map(d => d[config.key]),
+                            data: config.type === 'scatter' ? data.map(d => ({ x: d[config.valueKey], y: d[config.dataKey] })) : data.map(d => d[config.dataKey]),
                             backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`
                         }]
                     },
                     options: {
                         scales: {
                             x: {
-                                type: config.isValueChart ? 'linear' : undefined,
+                                type: config.type === 'scatter' ? 'linear' : undefined,
                                 position: 'bottom',
                                 title: {
                                     display: true,
-                                    text: config.isValueChart ? 'Valor en Monedas' : 'Monsters'
+                                    text: config.type === 'scatter' ? 'Valor en Monedas' : 'Monsters'
                                 }
                             },
                             y: {
@@ -151,15 +165,16 @@
                 }));
             });
 
-            // Individual damage probability charts
             document.getElementById('individualDamageProbCharts').innerHTML = '';
             data.forEach(monster => {
-                const chartContainer = document.createElement('div');
-                chartContainer.className = 'chart-container';
-                chartContainer.innerHTML = `<canvas id="damageProbChart${monster.id}"></canvas>`;
-                document.getElementById('individualDamageProbCharts').appendChild(chartContainer);
+                const container = document.createElement('div');
+                container.className = 'chart-container';
+                const canvas = document.createElement('canvas');
+                canvas.id = `damageProbChart${monster.id}`;
+                container.appendChild(canvas);
+                document.getElementById('individualDamageProbCharts').appendChild(container);
 
-                const ctx = document.getElementById(`damageProbChart${monster.id}`).getContext('2d');
+                const ctx = canvas.getContext('2d');
                 charts.push(new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -180,6 +195,8 @@
                 }));
             });
         }
+
+        loadData();
     </script>
 </body>
 </html>
