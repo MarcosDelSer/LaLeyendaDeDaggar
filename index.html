@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Monster Damage Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include the Boxplot plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@latest"></script>
     <style>
         .chart-container {
             width: 600px;
@@ -54,7 +56,15 @@
             const coinValues = data.map(d => d['daño_medio']);
             const averageDamages = data.map(d => d['daño_medio']);
             const maxDamages = data.map(d => d['daño max']);
-            const damageOutputs = data.map(d => Object.values(d).slice(6, 15)); // Assumes damage probabilities start from 'prob_daño_0' to 'prob_daño_8'
+            const damageOutputs = data.map(d => {
+                return {
+                    min: Math.min(...Object.values(d).slice(6, 15)),
+                    q1: d['prob_daño_2'],
+                    median: d['prob_daño_4'],
+                    q3: d['prob_daño_6'],
+                    max: Math.max(...Object.values(d).slice(6, 15))
+                };
+            });
 
             // Initialize contexts for charts
             const avgDamageCtx = document.getElementById('averageDamageChart').getContext('2d');
