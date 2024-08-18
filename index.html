@@ -24,9 +24,12 @@
     <div class="chart-container">
         <canvas id="maxDamageChart"></canvas>
     </div>
+    <!-- 
     <div class="chart-container">
         <canvas id="damageOutputBoxPlot"></canvas>
     </div>
+    -->
+
     <div class="chart-container">
         <canvas id="cumulativeDamageChart"></canvas>
     </div>
@@ -69,7 +72,7 @@
             // Initialize contexts for charts
             const avgDamageCtx = document.getElementById('averageDamageChart').getContext('2d');
             const maxDamageCtx = document.getElementById('maxDamageChart').getContext('2d');
-            const boxPlotCtx = document.getElementById('damageOutputBoxPlot').getContext('2d');
+            //const boxPlotCtx = document.getElementById('damageOutputBoxPlot').getContext('2d');
             const cumulativeDamageCtx = document.getElementById('cumulativeDamageChart').getContext('2d');
             const utilityScoreCtx = document.getElementById('utilityScoreChart').getContext('2d');
             const damageProbHistCtx = document.getElementById('damageProbabilityHistogram').getContext('2d');
@@ -78,6 +81,7 @@
             new Chart(avgDamageCtx, { /* As previously defined */ });
             new Chart(maxDamageCtx, { /* As previously defined */ });
 
+            /*
             // Box Plot for Damage Outputs
             new Chart(boxPlotCtx, {
                 type: 'boxplot',
@@ -90,6 +94,7 @@
                     }]
                 }
             });
+            */
 
             // Cumulative Damage Probability Chart (area chart)
             new Chart(cumulativeDamageCtx, {
