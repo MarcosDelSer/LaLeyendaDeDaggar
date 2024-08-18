@@ -1,0 +1,23 @@
+id,Nombre,Jefe,Tipo,PV,Iniciativa,DA,BF,DF,VALOR,Efecto especial,Daño efecto
+1,Zombie Podrido,SÍ,C/C,6,3,1,Mayor PV,1DR,300,1 Impacto y veneno,3
+2,Esqueleto,NO,C/C,3,1,1,Mayor PV,0,100,1 Impacto,1
+3,Arquero Esqueleto,NO,Rango,2,1,1,Menor PV,0,100,Repite tirada (1 vez),1DA
+4,Araña,NO,C/C y Rango,4,3,1,Rangos,0,150,1 impacto y telaraña,1
+5,Esqueleto Jefe,SÍ,C/C,5,2,1,Mayor PV,0,250,Gana 1 punto de armadura,0
+6,Cría de Araña,NO,Rango,3,3,1,menor PV,0,100,Telaraña (Inmoviliza),0
+7,Zombie,NO,C/C,5,2,1,Mayor PV,0,175,1 Impacto y veneno,3
+8,Araña Madre,SÍ,C/C y Rango,6,3,1,C/c,1DR,250,1 impacto y telaraña,1
+9,Espíritu Sombra,NO,Rango,3,3,2,Menor PV,1A,350,Aturdimiento,0
+10,Centauro Esqueleto,NO,Rango,3,3,2,Menor PV,1DN,350,1 Impacto,1
+11,Hormiga Gigante,NO,Rango,5,2,1,Menor PV,1DN,350,1 Impacto y fuego,2
+12,Hombre Árbol,NO,C/C,8,1,1,Mayor PV,1DR,200,Raíces (Inmoviliza),0
+13,Brujo,NO,Rango,5,2,2,Menor PV,0,400,Invoca un esqueleto,0
+14,Cobra Reina,SI,Rango,7,4,2,Mayor PV,1DN+1A,500,1 Impacto y veneno,3
+15,Cobra,NO,Rango,5,4,2,Mayor PV,1DN,400,1 Impacto y veneno,3
+16,Minotauro,NO,C/C,8,3,2,Mayor PV,1DN,500,Aturdimiento,0
+17,Brujo Esqueleto,NO,C/C,3,,2,Menor PV,0,150,cura 1pv,0
+18,Hombre Lobo,NO,C/C,6,3,1,Mayor PV,1DN,300,1 Impacto y ataca de nuevo,1 +1DA
+19,Escorpión Gigante,NO,C/C,6,3,2,Mayor PV,1DN,350,VENENO,2
+20,Nigromante,NO,C/C,6,3,2,Mayor PV,2DR,500,Recupera 1pv,0
+21,Nigromante Maestro,SI,C/C,7,3,2,Mayor PV,2DR,550,+1 Impacto y Recupera 1pv,1
+22,Hombre Serpiente,NO,C/C,5,3,1,Mayor PV,1DA,400,+2 Impactos,2
